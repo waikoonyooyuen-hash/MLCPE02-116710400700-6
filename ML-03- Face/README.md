@@ -1,59 +1,119 @@
-# ML02_HW1
+# ML03_HW2
 ชื่อ ไวกูณฐ์ อยู่ยืน 116710400700-6 Sec2
-Data Preprocessing?
-ข้อมูลดิบ (Raw Data) ที่ได้มาในชีวิตจริงมักจะไม่สมบูรณ์ เช่น มีช่องว่าง (Missing Value) มีแถวที่เก็บข้อมูลซ้ำกัน (Duplicate) หรือมีค่าผิดปกติที่เป็นไปไม่ได้ (Outlier เช่น อายุ 200 ปี หรือค่าติดลบ)
-ถ้าเราเอาข้อมูลที่ผิดพลาดเหล่านี้ไปป้อนให้โมเดล Machine Learning เรียนรู้ทันที โมเดลก็จะคำนวณความน่าจะเป็นผิดพลาด และทำนายผลออกมาผิด (หลักการ Garbage In, Garbage Out) ดังนั้นเราจึงต้องทำความสะอาดและแปลงข้อมูลให้อยู่ในรูปตัวเลขที่พร้อมสำหรับการคำนวณก่อนเสมอ
 
-# 1. การเตรียม Libraries (Import Libraries)
+#  การเตรียมข้อมูล (Data Preparation)
 Python
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 import seaborn as sns
-pandas (pd): ไลบรารีหลักสำหรับจัดการข้อมูลแบบตาราง (DataFrame) ทำหน้าที่เหมือนเราใช้งาน Excel หรือ SQL ผ่านโค้ด
-numpy (np): ใช้จัดการการคำนวณทางคณิตศาสตร์ และใช้เรียกตัวแปรค่าว่างที่เป็นมาตรฐานระบบคือ np.nan (Not a Number)
-matplotlib และ seaborn: ใช้สำหรับสร้างกราฟเพื่อดูการกระจายตัวและแนวโน้มของข้อมูลใน LAB 2
- 
-# 2. LAB 1: Dataset Exploration (การสำรวจเพื่อทำความเข้าใจข้อมูล)
-ก่อนจะทำความสะอาด เราต้องสำรวจก่อนว่าตารางข้อมูลของเรามีปัญหาซ่อนอยู่ตรงจุดไหนบ้าง
-pd.read_csv('...') และ df.head(): สั่งโหลดไฟล์ CSV เข้ามาเก็บในตัวแปร df แล้วดูตัวอย่างข้อมูล 5 แถวแรก เพื่อดูหน้าตาของคอลัมน์ต่างๆ
-df.shape: เช็คขนาดของตารางว่ามีกี่แถว กี่คอลัมน์ (ได้ผลลัพธ์คือ 20 แถว 7 คอลัมน์)
-df.dtypes: เช็คชนิดข้อมูล (Data Type) ของแต่ละคอลัมน์
-จุดสังเกตสำคัญ: คอลัมน์ Age (อายุ) ควรจะเป็นตัวเลข (int หรือ float) แต่ผลลัพธ์ดันขึ้นเป็น object (ข้อความ) แสดงว่าในคอลัมน์นี้ต้องมีตัวอักษรหรือช่องว่างแปลกๆ ปนอยู่แน่นอน
-df.describe(include='all'): ดูสถิติเบื้องต้น เช่น ค่าเฉลี่ย, ค่าต่ำสุด (min), ค่าสูงสุด (max)
-จุดสังเกตสำคัญ: จะเห็นว่าคอลัมน์ Age มีค่า min คือ -5 และค่า max คือ 200 ซึ่งเป็นไปไม่ได้ในความเป็นจริง (เรียกว่าข้อมูลกลุ่ม Outlier / Incorrect Data)
-df.isnull().sum(): เช็คและนับรวมว่าแต่ละคอลัมน์มีช่องว่าง (NaN) อยู่กี่ช่อง เพื่อจะได้รู้ว่าต้องไปเติมค่าตรงไหนใน Part 3
-df.duplicated(...): ตรวจสอบว่ามีข้อมูลแถวไหนที่พิมพ์ซ้ำกัน 100% ทุกคอลัมน์หรือไม่ (พบว่ารหัส S005 ซ้ำกันอยู่ 2 แถว)
-df['Passed'].value_counts(normalize=True) * 100: ดูสัดส่วนของคำตอบ (Class Distribution) ว่ามีนักศึกษาที่สอบผ่านและไม่ผ่านคิดเป็นกี่เปอร์เซ็นต์ เพื่อเช็คว่าข้อมูลบาลานซ์กันหรือไม่
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
-# 3. LAB 2: Data Visualization (การแสดงผลกราฟเพื่อวิเคราะห์)
-Histogram (sns.histplot): สั่งวาดกราฟแท่งเพื่อดู "การกระจายตัวและความถี่" ของชั่วโมงการอ่านหนังสือและคะแนนสอบ โดยใช้ dropna() ตัดค่าว่างออกไปก่อนชั่วคราวเพราะกราฟคำนวณค่าว่างไม่ได้ และใส่ kde=True เพื่อวาดเส้นโค้งความหนาแน่น จะได้ดูง่ายขึ้นว่าข้อมูลมีการแจกแจงแบบปกติ (Normal Distribution - โค้งระฆังคว่ำ) หรือไม่
-Correlation Heatmap (sns.heatmap): ใช้ดูค่าความสัมพันธ์ระหว่างตัวแปรเชิงตัวเลข (numeric_df.corr()) ค่าที่ได้จะอยู่ระหว่าง -1 ถึง 1
-เข้าใกล้ 1: สัมพันธ์กันแบบแปรผันตรง (เช่น ยิ่งชั่วโมงอ่านหนังสือสูง คะแนนก็มักจะสูงตาม)
-เข้าใกล้ -1: สัมพันธ์กันแบบตรงกันข้าม
-เข้าใกล้ 0: ตัวแปรทั้งสองไม่มีความเกี่ยวข้องกัน
+df = pd.read_csv('faces.csv')
 
-# 4. PART 3: Data Cleaning (ขั้นตอนการทำความสะอาดข้อมูล)
-df_clean = df.copy(): ทำการก๊อปปี้ข้อมูลแยกลงตัวแปรใหม่ก่อนซ่อมแซม เพื่อป้องกันไม่ให้โค้ดไปทับข้อมูลดิบต้นฉบับ
-drop_duplicates(inplace=True): ลบแถวข้อมูลที่ซ้ำซ้อนกันออก ให้เหลือแค่แถวเดียว
-การซ่อมแซมคอลัมน์ Age:
-.str.strip(): ใช้ตัดช่องว่าง (Spacebar) ที่แอบแฝงอยู่หัวท้ายของข้อความออก เช่น ' 21 ' จะกลายเป็น '21'
-pd.to_numeric(..., errors='coerce'): สั่งแปลงข้อความให้เป็นตัวเลขจริง ส่วนคำสั่ง errors='coerce' มีไว้ป้องกันโค้ดพัง โดยบอกว่าถ้าเจอคำไหนที่แปลงเป็นตัวเลขไม่ได้ ให้เปลี่ยนค่านั้นเป็นค่าว่าง (NaN) แทน
-df_clean.loc[...] = np.nan: กรองหาแถวที่อายุผิดปกติ (อายุน้อยกว่าเท่ากับ 0 หรือมากกว่า 100 ปี) แล้วจับเปลี่ยนให้เป็นค่าว่าง (np.nan) เพื่อรอการเติมค่าใหม่ที่ถูกต้อง
-การจัดการค่าว่าง (Missing Value Imputation):
-ทำไมคอลัมน์ Age ถึงเลือกใช้ค่ามัธยฐาน (median)?: เพราะก่อนหน้านี้คอลัมน์อายุมีค่าโดดผิดปกติ (Outlier คือ 200 และ -5) ถ้าเราใช้ค่าเฉลี่ย (mean) ตัวเลขเฉลี่ยจะถูกดึงให้สูงหรือต่ำเกินความเป็นจริง การใช้ median (ค่าตำแหน่งตรงกลาง) จะทนทานต่อ Outlier และได้ตัวแทนข้อมูลที่ถูกต้องกว่า
-ทำไม Study_Hours และ Score ถึงใช้ค่าเฉลี่ย (mean)?: เพราะสองคอลัมน์นี้ไม่มีค่าโดดที่ผิดปกติ และมีการกระจายตัวของข้อมูลค่อนข้างปกติ จึงสามารถใช้ค่าเฉลี่ยรวมมาเติมลงในช่องว่างได้เลย
+df['face_width'] = df['x1'] - df['x0']
+df['face_height'] = df['y1'] - df['y0']
+df['face_area'] = df['face_width'] * df['face_height']
 
-# 5. PART 4: Feature Engineering (การแปลงข้อมูลตัวอักษรเป็นตัวเลข)
-สมการของโมเดล Machine Learning สามารถคำนวณได้เฉพาะตัวเลขเท่านั้น ไม่สามารถเข้าใจตัวอักษรได้ เราจึงต้องแปลงข้อมูลประเภทหมวดหมู่ (Categorical Data) ให้เป็นตัวเลขตามหลักการนี้:
+np.random.seed(42)
+df['age'] = 20 + (df['face_area'] / df['face_area'].max()) * 40 + np.random.normal(0, 5, size=len(df))
 
-  1) Label Encoding (ใช้กับคอลัมน์ Education_Level):
+อธิบาย code
+  1. pd.read_csv('faces.csv'): ดึงข้อมูลจากไฟล์ CSV เข้ามาเก็บในตัวแปร df
+  2. df['face_width'] และ df['face_height']: คำนวณหาความกว้างและความสูงของใบหน้า
+  3. df['face_area']: นำความกว้างมาคูณความสูงเพื่อหาพื้นที่ใบหน้า
+  4. df['age']: สุ่มสร้างค่าอายุสมมติโดยอิงจากขนาดพื้นที่ใบหน้า เพื่อใช้ทำนายในโจทย์ถัดไป
 
-เป็นการเปลี่ยนข้อความให้เป็นตัวเลขเรียงลำดับ เช่น 0, 1, 2
+โดยใบหน้านั้นเราได้นำมาข้อมูลมากจาก kaggle
 
-เหตุผลที่ใช้กับระดับการศึกษา: เพราะข้อมูลระดับการศึกษามีคุณสมบัติเป็น Ordinal Data (ข้อมูลเชิงลำดับชั้น) คือ ม.ปลาย < ป.ตรี < ป.โท การแปลงเป็นเลขเรียงลำดับจะทำให้โมเดลเข้าใจถึงความมากน้อยหรือระดับความสูงต่ำของการศึกษาได้
+# Lab1 การทำทำนายอายุ (Regression)
 
-  2) One-Hot Encoding (ใช้กับคอลัมน์ Department ด้วย pd.get_dummies):
+Lab นี้ทดลองทำนายอายุด้วยโมเดล 3 แบบ ได้แก่ Simple Linear Regression, Multiple Linear Regression และ PCA Linear Regression
+Python
+   # --- Part 1: Simple Linear Regression (ใช้ 1 ตัวแปร) ---
+X_simple = df[['face_area']]
+y = df['age']
+X_train_s, X_test_s, y_train_s, y_test_s = train_test_split(X_simple, y, test_size=0.2, random_state=42)
 
-เป็นการแตกคอลัมน์เดิมออกเป็นคอลัมน์ย่อยๆ ตามจำนวนภาควิชา แล้วใส่ค่า 1 (มี/ใช่) และ 0 (ไม่มี/ไม่ใช่)
-เหตุผลที่ใช้กับภาควิชา: เพราะภาควิชา (CS, IT, SE, DS) เป็นข้อมูลประเภท Nominal Data (ข้อมูลนามบัญญัติที่ไม่มีลำดับชั้น) ไม่มีความใหญ่กว่าหรือเล็กกว่ากัน
+simple_model = LinearRegression()
+simple_model.fit(X_train_s, y_train_s)
+y_pred_s = simple_model.predict(X_test_s)
+
+   # --- Part 2: Multiple Linear Regression (ใช้หลายตัวแปร) ---
+X_multi = df[['width', 'height', 'face_width', 'face_height', 'face_area']]
+X_train_m, X_test_m, y_train_m, y_test_m = train_test_split(X_multi, y, test_size=0.2, random_state=42)
+
+multi_model = LinearRegression()
+multi_model.fit(X_train_m, y_train_m)
+y_pred_m = multi_model.predict(X_test_m)
+
+    # --- Part 3: PCA Linear Regression (ลดมิติข้อมูลก่อนเทรน) ---
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X_multi)
+
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+
+X_train_p, X_test_p, y_train_p, y_test_p = train_test_split(X_pca, y, test_size=0.2, random_state=42)
+
+pca_model = LinearRegression()
+pca_model.fit(X_train_p, y_train_p)
+y_pred_p = pca_model.predict(X_test_p)
+
+ อธิบาย code
+   1. train_test_split(...): แบ่งข้อมูลเป็นชุดเรียนรู้ (Train 80%) และชุดทดสอบ (Test 20%)
+   2. LinearRegression() และ .fit(...): สร้างโมเดลแล้วป้อนข้อมูลให้โมเดลฝึกเรียนรู้
+   3. .predict(...): สั่งให้โมเดลทำนายค่าออกมา
+   4. StandardScaler() และ PCA(n_components=2): ปรับมาตรฐานข้อมูลและบีบอัดข้อมูลจากหลายตัวแปรให้เหลือ 2 แกนหลัก (PC1, PC2)
+
+# LAB2 การจำแนกประเภทเพศ (Classification)
+
+Lab นี้เปลี่ยนมาทำนายประเภทข้อมูล (Male/Female) โดยใช้ Logistic Regression
+
+    # 1. จำลองข้อมูลเพศ (0 = ชาย, 1 = หญิง)
+df['gender'] = (df['face_width'] / df['face_height'] > 1.0).astype(int)
+y_gender = df['gender']
+
+    # 2. แบ่งข้อมูล Train / Test
+X_train_c, X_test_c, y_train_c, y_test_c = train_test_split(X_pca, y_gender, test_size=0.2, random_state=42)
+
+    # 3. เทรนโมเดล Logistic Regression
+clf = LogisticRegression()
+clf.fit(X_train_c, y_train_c)
+
+    # 4. ทำนายผล
+y_pred_c = clf.predict(X_test_c)
+y_prob_c = clf.predict_proba(X_test_c)[:, 1]
+
+ อธิบาย code
+   1. (df['face_width'] / df['face_height'] > 1.0): สร้างเงื่อนไขจำลองเพศจากสัดส่วนใบหน้า
+   2. LogisticRegression(): สร้างโมเดลจำแนกประเภท
+   3. .predict_proba(...): หาค่าความน่าจะเป็นของการเป็นแต่ละคลาส เพื่อเอาไปใช้วาดกราฟ ROC Curve
+
+# LAB3 สรุปผลและการเปรียบเทียบโมเดล (Model Comparison)
+
+ในส่วนนี้เป็นการนำผลการทดลองมาแสดงผ่านกราฟ ตาราง และตัวชี้วัดต่างๆ เช่น $R^2$, MSE, Accuracy, F1-Score
+Python
+# เปรียบเทียบผล Regression
+reg_comp_df = pd.DataFrame({
+    'Model': ['Simple Linear Regression', 'Multiple Linear Regression', 'PCA Linear Regression'],
+    'Train R²': [r2_score(y_train_s, simple_model.predict(X_train_s)), 
+                r2_score(y_train_m, multi_model.predict(X_train_m)), 
+                r2_score(y_train_p, pca_model.predict(X_train_p))],
+    'Test R²': [r2_score(y_test_s, y_pred_s), r2_score(y_test_m, y_pred_m), r2_score(y_test_p, y_pred_p)],
+    'Test MSE': [mean_squared_error(y_test_s, y_pred_s), mean_squared_error(y_test_m, y_pred_m), mean_squared_error(y_test_p, y_pred_p)]
+})
+
+print(reg_comp_df)
+
+ อธิบาย code
+   1.รวบรวมค่า $R^2$ และ MSE มาสร้างตารางเพื่อเปรียบเทียบดูว่าโมเดลไหนแม่นยำที่สุด และดูว่าเกิด Overfitting หรือไม่ 
+
+ # สรุปผลการทดลอง
+ - การทำนายอายุ (Regression): โมเดลที่ใช้หลายตัวแปร (Multiple LR) ให้ผลลัพธ์ดีกว่าการใช้แค่ตัวแปรเดียว (Simple LR) ส่วนโมเดลที่ใช้ PCA สามารถบีบข้อมูลเหลือ 2 Dimensions แต่ยังคงทำนายผลได้ใกล้เคียงกับข้อมูลชุดเต็ม
+ - การจำแนกเพศ (Classification): โมเดล Logistic Regression สามารถแบ่งเส้น Decision Boundary เพื่อแยกเพศชายและหญิงได้ดี
+ - การประเมินผล: ค่าประสิทธิภาพระหว่าง Train และ Test ใกล้เคียงกัน แสดงว่าโมเดลไม่มีปัญหา Overfitting สามารถนำไปใช้งานจริงได้ครับ
